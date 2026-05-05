@@ -35,7 +35,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(BusinessRuleViolationException.class)
-    public ResponseEntity<ErrorResponse> handleBusinessRuleViolent(BusinessRuleViolationException e) {
+    public ResponseEntity<ErrorResponse> handleBusinessRuleViolation(BusinessRuleViolationException e) {
         log.warn("Business rule violation: {}", e.getMessage());
         return buildResponse(HttpStatus.BAD_REQUEST, e.getMessage());
     }
@@ -60,22 +60,23 @@ public class GlobalExceptionHandler {
                 .map(error -> error.getField() + " " + error.getDefaultMessage())
                 .toList();
         log.warn("Validation failed: {}", details);
-
-        HttpStatus status = HttpStatus.BAD_REQUEST;
-        return ResponseEntity.status(status).body(
-                new ErrorResponse(
-                        status.value(),
-                        status.getReasonPhrase(),
-                        VALIDATION_FAILED,
-                        details
-                )
-        );
+        return buildResponse(HttpStatus.BAD_REQUEST, VALIDATION_FAILED, details);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException e) {
-        log.warn("Constraint violation: {}", e.getMessage());
-        return buildResponse(HttpStatus.BAD_REQUEST, INVALID_REQUEST_PARAMETER);
+        List<String> details = e.getConstraintViolations()
+                .stream()
+                .map(violation -> {
+                    // getPropertyPath() returns "methodName.parameterName" (e.g. "list.page")
+                    // Extract only the parameter name after the last "."
+                    String field = violation.getPropertyPath().toString();
+                    field = field.contains(".") ? field.substring(field.lastIndexOf(".") + 1) : field;
+                    return field + " " + violation.getMessage();
+                })
+                .toList();
+        log.warn("Invalid request parameter: {}", details);
+        return buildResponse(HttpStatus.BAD_REQUEST, INVALID_REQUEST_PARAMETER, details);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -99,6 +100,12 @@ public class GlobalExceptionHandler {
     private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String message) {
         return ResponseEntity.status(status).body(
                 new ErrorResponse(status.value(), status.getReasonPhrase(), message)
+        );
+    }
+
+    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String message, List<String> details) {
+        return ResponseEntity.status(status).body(
+                new ErrorResponse(status.value(), status.getReasonPhrase(), message, details)
         );
     }
 }
