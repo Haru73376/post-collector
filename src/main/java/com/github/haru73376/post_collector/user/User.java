@@ -11,19 +11,25 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "users")
-@AllArgsConstructor
 @NoArgsConstructor
 @Getter
-@Setter
 public class User {
     @Id
     @UuidGenerator(style = UuidGenerator.Style.TIME)
     private UUID id;
+
+    @Setter
     private String username;
+
+    @Setter
     private String email;
+
+    @Setter
     private String passwordHash;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
+
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 }
