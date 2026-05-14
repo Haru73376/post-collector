@@ -121,6 +121,20 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.message").value("Email already exists"));
     }
 
+    @Test
+    void register_duplicateUsername_returns409() throws Exception {
+        RegisterRequest request = new RegisterRequest("alice", "alice@example.com", "password123");
+
+        given(authService.register(any(RegisterRequest.class)))
+                .willThrow(new ConflictException("Username already exists"));
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Username already exists"));
+    }
+
     // -------------------------------------------------------------------------
     // login()
     // -------------------------------------------------------------------------
@@ -143,8 +157,11 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.accessToken").value("access.token.value"))
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
                 .andExpect(jsonPath("$.expiresIn").value(900))
-                .andExpect(header().string(HttpHeaders.SET_COOKIE,
-                        containsString("refreshToken=raw-refresh-token")));
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("refreshToken=raw-refresh-token")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("HttpOnly")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Secure")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("SameSite=Strict")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Path=/api/v1/auth")));
     }
 
     @Test
@@ -169,7 +186,20 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Validation failed"));
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.details[0]").value(containsString("email")));
+    }
+
+    @Test
+    void login_blankPassword_returns400() throws Exception {
+        LoginRequest request = new LoginRequest("alice@example.com", "");
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.details[0]").value(containsString("password")));
     }
 
     // -------------------------------------------------------------------------
@@ -190,14 +220,18 @@ class AuthControllerTest {
                         .cookie(new Cookie("refreshToken", "old-raw-token")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("new.access.token"))
-                .andExpect(header().string(HttpHeaders.SET_COOKIE,
-                        containsString("refreshToken=new-raw-refresh-token")));
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("refreshToken=new-raw-refresh-token")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("HttpOnly")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Secure")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("SameSite=Strict")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Path=/api/v1/auth")));
     }
 
     @Test
     void refresh_missingCookie_returns401() throws Exception {
         mockMvc.perform(post("/api/v1/auth/refresh"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Refresh token is missing"));
     }
 
     @Test

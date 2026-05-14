@@ -117,7 +117,8 @@ class AuthServiceTest {
         given(userRepository.findByEmail("nobody@example.com")).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(InvalidCredentialsException.class);
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessage("Invalid email or password");
     }
 
     @Test
@@ -128,8 +129,10 @@ class AuthServiceTest {
         given(userRepository.findByEmail("alice@example.com")).willReturn(Optional.of(user));
         given(passwordEncoder.matches("wrongpassword", "hashed")).willReturn(false);
 
+        // same message as userNotFound to prevent user enumeration attacks
         assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(InvalidCredentialsException.class);
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessage("Invalid email or password");
     }
 
     // -------------------------------------------------------------------------
@@ -160,8 +163,10 @@ class AuthServiceTest {
     void refresh_tokenNotFound_throwsInvalidTokenException() {
         given(refreshTokenRepository.findByTokenHash(anyString())).willReturn(Optional.empty());
 
+        // same message as expiredToken to avoid leaking whether the token ever existed
         assertThatThrownBy(() -> authService.refresh("unknown-token"))
-                .isInstanceOf(InvalidTokenException.class);
+                .isInstanceOf(InvalidTokenException.class)
+                .hasMessage("Refresh token is invalid or expired");
     }
 
     @Test
@@ -171,8 +176,10 @@ class AuthServiceTest {
 
         given(refreshTokenRepository.findByTokenHash(anyString())).willReturn(Optional.of(expiredToken));
 
+        // same message as tokenNotFound to avoid leaking whether the token ever existed
         assertThatThrownBy(() -> authService.refresh("expired-token"))
-                .isInstanceOf(InvalidTokenException.class);
+                .isInstanceOf(InvalidTokenException.class)
+                .hasMessage("Refresh token is invalid or expired");
         // expired token must be cleaned up from DB
         verify(refreshTokenRepository).deleteByTokenHash(anyString());
     }
