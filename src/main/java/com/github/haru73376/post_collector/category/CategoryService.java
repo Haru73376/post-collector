@@ -80,7 +80,8 @@ public class CategoryService {
         category.setName(request.name());
         category.setSortOrder(request.sortOrder() != null ? request.sortOrder() : 0);
 
-        Category savedCategory = categoryRepository.save(category);
+        // saveAndFlush ensures @CreationTimestamp/@UpdateTimestamp are populated before toResponse() reads them
+        Category savedCategory = categoryRepository.saveAndFlush(category);
 
         return toResponse(savedCategory);
     }
@@ -124,6 +125,9 @@ public class CategoryService {
         if (newSortOrder != null) {
             category.setSortOrder(newSortOrder);
         }
+
+        // Flush to trigger @UpdateTimestamp before building the response
+        categoryRepository.flush();
 
         return toResponse(category);
     }

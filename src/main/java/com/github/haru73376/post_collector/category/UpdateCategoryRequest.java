@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import java.util.UUID;
 
 public record UpdateCategoryRequest(
-        @Size(max = 100) String name,
+        @Size(min = 1, max = 100) String name,
         UUID parentId,
         @PositiveOrZero Integer sortOrder
 ) {
