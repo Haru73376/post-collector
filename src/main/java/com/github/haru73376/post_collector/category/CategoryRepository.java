@@ -7,8 +7,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface CategoryRepository extends JpaRepository<Category, UUID> {
-    List<Category> findAllByUserId(UUID userId);
+    List<Category> findAllByUserIdOrderBySortOrderAscCreatedAtAsc(UUID userId);
+
     Optional<Category> findByIdAndUserId(UUID id, UUID userId);
+
     boolean existsByUserIdAndParentIdAndName(UUID userId, UUID parentId, String name);
-    long countByParentId(UUID parentId);
+
+    List<Category> findByParentId(UUID parentId);
 }
