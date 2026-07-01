@@ -7,7 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface TagRepository extends JpaRepository<Tag, Long> {
-    List<Tag> findAllByUserId(UUID userId);
+    List<Tag> findAllByUserIdOrderByNameAsc(UUID userId);
 
     Optional<Tag> findByIdAndUserId(Long id, UUID userId);
 

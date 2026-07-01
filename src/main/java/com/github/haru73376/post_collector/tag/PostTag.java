@@ -6,7 +6,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "post_tags")
-@IdClass(PostTag.class)
+@IdClass(PostTagId.class)
 public class PostTag {
     @Id
     @Column(name = "post_id")
@@ -14,5 +14,5 @@ public class PostTag {
 
     @Id
     @Column(name = "tag_id")
-    private long tagId;
+    private Long tagId;
 }

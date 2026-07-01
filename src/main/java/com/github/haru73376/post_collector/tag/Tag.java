@@ -2,12 +2,14 @@ package com.github.haru73376.post_collector.tag;
 
 import com.github.haru73376.post_collector.user.User;
 import jakarta.persistence.*;
+import lombok.Getter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "tags")
+@Getter
 public class Tag {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
