@@ -1,6 +1,7 @@
 package com.github.haru73376.post_collector.tag;
 
 import com.github.haru73376.post_collector.common.exception.ConflictException;
+import com.github.haru73376.post_collector.common.exception.ResourceNotFoundException;
 import com.github.haru73376.post_collector.user.User;
 import com.github.haru73376.post_collector.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,9 +31,7 @@ public class TagService {
     public TagDetailResponse createTag(UUID userId, CreateTagRequest request) {
         String name = request.name().strip();
 
-        if (tagRepository.existsByUserIdAndName(userId, name)) {
-            throw new ConflictException("Tag with the same name already exists");
-        }
+        validateNameNotDuplicated(userId, name);
 
         Tag tag = new Tag();
         User userRef = userRepository.getReferenceById(userId);
@@ -45,6 +44,39 @@ public class TagService {
         return new TagDetailResponse(
                 savedTag.getId(),
                 savedTag.getName(),
-                savedTag.getCreatedAt());
+                savedTag.getCreatedAt()
+        );
+    }
+
+    @Transactional
+    public TagResponse updateTag(UUID userId, Long tagId, UpdateTagRequest request) {
+        Tag tag = findOwnedTag(tagId, userId);
+
+        String newName = request.name().strip();
+        if (!tag.getName().equals(newName)) {
+            validateNameNotDuplicated(userId, newName);
+        }
+
+        tag.setName(newName);
+
+        return new TagResponse(tag.getId(), tag.getName());
+    }
+
+    @Transactional
+    public void deleteTag(UUID userId, Long tagId) {
+        Tag tag = findOwnedTag(tagId, userId);
+
+        tagRepository.delete(tag);
+    }
+
+    private void validateNameNotDuplicated(UUID userId, String name) {
+        if (tagRepository.existsByUserIdAndName(userId, name)) {
+            throw new ConflictException("Tag with the same name already exists");
+        }
+    }
+
+    private Tag findOwnedTag(Long tagId, UUID userId) {
+        return tagRepository.findByIdAndUserId(tagId, userId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Tag not found"));
     }
 }

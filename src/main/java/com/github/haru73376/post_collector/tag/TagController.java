@@ -27,4 +27,17 @@ public class TagController {
         return ResponseEntity.status(HttpStatus.CREATED)
                              .body(tagService.createTag(securityContextUtils.getCurrentUserId(), request));
     }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<TagResponse> updateTag(
+            @PathVariable Long id, @Valid @RequestBody UpdateTagRequest request
+    ) {
+        return ResponseEntity.ok(tagService.updateTag(securityContextUtils.getCurrentUserId(), id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTag(@PathVariable Long id) {
+        tagService.deleteTag(securityContextUtils.getCurrentUserId(), id);
+        return ResponseEntity.noContent().build();
+    }
 }
