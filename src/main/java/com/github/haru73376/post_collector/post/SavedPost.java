@@ -1,9 +1,12 @@
-package com.github.haru73376.post_collector.savedPost;
+package com.github.haru73376.post_collector.post;
 
 import com.github.haru73376.post_collector.category.Category;
 import com.github.haru73376.post_collector.user.User;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 
@@ -12,6 +15,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "saved_posts")
+@SQLRestriction("deleted_at IS NULL")
+@Getter
 public class SavedPost {
     @Id
     @UuidGenerator(style = UuidGenerator.Style.TIME)
@@ -19,22 +24,31 @@ public class SavedPost {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
+    @Setter
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
+    @Setter
     private Category category;
 
+    @Setter
     private String url;
 
+    @Setter
     private String title;
 
+    @Setter
     private String memo;
 
+    @Setter
     private String thumbnailUrl;
 
-    private String platform;
+    @Enumerated(EnumType.STRING)
+    @Setter
+    private Platform platform;
 
+    @Setter
     private boolean isFavorite;
 
     @CreationTimestamp

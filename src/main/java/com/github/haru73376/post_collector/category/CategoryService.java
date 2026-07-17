@@ -3,7 +3,7 @@ package com.github.haru73376.post_collector.category;
 import com.github.haru73376.post_collector.common.exception.BusinessRuleViolationException;
 import com.github.haru73376.post_collector.common.exception.ConflictException;
 import com.github.haru73376.post_collector.common.exception.ResourceNotFoundException;
-import com.github.haru73376.post_collector.savedPost.SavedPostRepository;
+import com.github.haru73376.post_collector.post.SavedPostRepository;
 import com.github.haru73376.post_collector.user.User;
 import com.github.haru73376.post_collector.user.UserRepository;
 import lombok.RequiredArgsConstructor;
