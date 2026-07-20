@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1/posts")
 @RequiredArgsConstructor
@@ -28,5 +30,13 @@ public class PostController {
     public ResponseEntity<PostDetailResponse> createPost(@Valid @RequestBody CreatePostRequest request) {
         PostDetailResponse response = postService.createPost(securityContextUtils.getCurrentUserId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<PostDetailResponse> updatePost(
+            @PathVariable UUID id, @Valid @RequestBody UpdatePostRequest request
+    ) {
+        PostDetailResponse response = postService.updatePost(securityContextUtils.getCurrentUserId(), id, request);
+        return ResponseEntity.ok(response);
     }
 }

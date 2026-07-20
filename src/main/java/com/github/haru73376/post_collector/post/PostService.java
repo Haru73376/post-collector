@@ -33,8 +33,11 @@ public class PostService {
 
     private static final Set<String> ALLOWED_SORT_PROPERTIES = Set.of("createdAt", "updatedAt", "title");
     private static final int MAX_PAGE_SIZE = 100;
+    private static final int MAX_MEMO_LENGTH = 65535;
+    private static final int MAX_THUMBNAIL_URL_LENGTH = 2048;
     private static final String MSG_CATEGORY_NOT_FOUND = "Category not found";
     private static final String MSG_TAG_NOT_FOUND = "One or more tags not found";
+    private static final String MSG_POST_NOT_FOUND = "Saved post not found";
     private static final Pattern THUMBNAIL_URL_PATTERN = Pattern.compile("^https://\\S+$");
 
     private final SavedPostRepository savedPostRepository;
@@ -91,7 +94,93 @@ public class PostService {
             postTagRepository.saveAll(postTags);
         }
 
-        return toDetailResponse(savedPost, tags);
+        return toDetailResponse(savedPost, toTagResponses(tags));
+    }
+
+    @Transactional
+    public PostDetailResponse updatePost(UUID userId, UUID postId, UpdatePostRequest request) {
+        SavedPost post = findOwnedPost(postId, userId);
+
+        if (request.url() != null) {
+            post.setUrl(request.url());
+        }
+        if (request.title() != null) {
+            post.setTitle(request.title());
+        }
+        if (request.platform() != null) {
+            post.setPlatform(request.platform());
+        }
+        if (request.isFavorite() != null) {
+            post.setFavorite(request.isFavorite());
+        }
+        if (request.memo().isPresent()) {
+            // Unlike Optional, isPresent() is true whenever "memo" was in the JSON at all
+            // (even as explicit null) — false only when the key was omitted
+            String memo = request.memo().get();
+            validateMemoLength(memo);
+            post.setMemo(memo);
+        }
+        if (request.thumbnailUrl().isPresent()) {
+            // Same JsonNullable semantics as memo above: true for explicit null too
+            String thumbnailUrl = request.thumbnailUrl().get();
+            if (thumbnailUrl != null) {
+                validateThumbnailUrlLength(thumbnailUrl);
+                validateThumbnailUrl(thumbnailUrl);
+            }
+            post.setThumbnailUrl(thumbnailUrl);
+        }
+        if (request.categoryId().isPresent()) {
+            // Same JsonNullable semantics as memo above: true for explicit null too.
+            // A null value here means "clear the category" (validateAndGetCategory returns null for null input)
+            post.setCategory(validateAndGetCategory(request.categoryId().get(), userId));
+        }
+
+        List<TagResponse> tagResponses = request.tagIds() != null
+                ? updatePostTags(postId, request.tagIds(), userId)
+                : postTagRepository.findTagsByPostIdIn(List.of(postId)).getOrDefault(postId, List.of());
+
+        // Flush to trigger @UpdateTimestamp before building the response
+        savedPostRepository.flush();
+
+        return toDetailResponse(post, tagResponses);
+    }
+
+    private List<TagResponse> updatePostTags(UUID postId, List<Long> tagIds, UUID userId) {
+        List<Tag> tags = validateAndGetTags(tagIds, userId);
+
+        postTagRepository.deleteAllByPostId(postId);
+        if (!tags.isEmpty()) {
+            List<PostTag> postTags = tags.stream()
+                    .map(tag -> new PostTag(postId, tag.getId()))
+                    .toList();
+            postTagRepository.saveAll(postTags);
+        }
+
+        return toTagResponses(tags);
+    }
+
+    private SavedPost findOwnedPost(UUID id, UUID userId) {
+        return savedPostRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new ResourceNotFoundException(MSG_POST_NOT_FOUND));
+    }
+
+    private void validateMemoLength(String memo) {
+        if (memo != null && memo.length() > MAX_MEMO_LENGTH) {
+            throw new BusinessRuleViolationException("memo must not exceed " + MAX_MEMO_LENGTH + " characters");
+        }
+    }
+
+    private void validateThumbnailUrlLength(String thumbnailUrl) {
+        if (thumbnailUrl.length() > MAX_THUMBNAIL_URL_LENGTH) {
+            throw new BusinessRuleViolationException(
+                    "thumbnailUrl must not exceed " + MAX_THUMBNAIL_URL_LENGTH + " characters");
+        }
+    }
+
+    private List<TagResponse> toTagResponses(List<Tag> tags) {
+        return tags.stream()
+                .map(tag -> new TagResponse(tag.getId(), tag.getName()))
+                .toList();
     }
 
     private Category validateAndGetCategory(UUID categoryId, UUID userId) {
@@ -121,14 +210,10 @@ public class PostService {
         }
     }
 
-    private PostDetailResponse toDetailResponse(SavedPost post, List<Tag> tags) {
+    private PostDetailResponse toDetailResponse(SavedPost post, List<TagResponse> tags) {
         CategoryBriefResponse category = post.getCategory() != null
                 ? new CategoryBriefResponse(post.getCategory().getId(), post.getCategory().getName())
                 : null;
-
-        List<TagResponse> tagResponses = tags.stream()
-                .map(tag -> new TagResponse(tag.getId(), tag.getName()))
-                .toList();
 
         return new PostDetailResponse(
                 post.getId(),
@@ -139,7 +224,7 @@ public class PostService {
                 post.getPlatform().name(),
                 post.isFavorite(),
                 category,
-                tagResponses,
+                tags,
                 post.getCreatedAt(),
                 post.getUpdatedAt()
         );
