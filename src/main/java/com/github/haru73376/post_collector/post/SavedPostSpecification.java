@@ -9,6 +9,8 @@ import java.util.UUID;
 
 public class SavedPostSpecification {
 
+    private static final char LIKE_ESCAPE_CHAR = '\\';
+
     private SavedPostSpecification() {
     }
 
@@ -44,11 +46,19 @@ public class SavedPostSpecification {
 
     private static Specification<SavedPost> matchesKeyword(String keyword) {
         if (keyword == null || keyword.isBlank()) return null;
-        String pattern = "%" + keyword + "%";
+        String pattern = "%" + escapeLikeWildcards(keyword) + "%";
         return (root, query, cb) -> cb.or(
-                cb.like(root.get("title"), pattern),
-                cb.like(root.get("memo"), pattern)
+                cb.like(root.get("title"), pattern, LIKE_ESCAPE_CHAR),
+                cb.like(root.get("memo"), pattern, LIKE_ESCAPE_CHAR)
         );
+    }
+
+    // Escapes LIKE wildcard characters so a keyword containing "%" or "_" is matched literally
+    private static String escapeLikeWildcards(String keyword) {
+        return keyword
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
     }
 
     private static Specification<SavedPost> hasTag(Long tagId) {

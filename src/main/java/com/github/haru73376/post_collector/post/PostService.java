@@ -20,6 +20,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -143,6 +144,12 @@ public class PostService {
         savedPostRepository.flush();
 
         return toDetailResponse(post, tagResponses);
+    }
+
+    @Transactional
+    public void deletePost(UUID userId, UUID postId) {
+        SavedPost post = findOwnedPost(postId, userId);
+        post.setDeletedAt(LocalDateTime.now());
     }
 
     private List<TagResponse> updatePostTags(UUID postId, List<Long> tagIds, UUID userId) {

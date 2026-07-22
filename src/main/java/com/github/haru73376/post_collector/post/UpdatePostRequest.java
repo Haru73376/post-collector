@@ -7,10 +7,10 @@ import java.util.List;
 import java.util.UUID;
 
 public record UpdatePostRequest(
-        @Size(max = 2048)
+        @Size(min = 1, max = 2048)
         String url,
 
-        @Size(max = 255)
+        @Size(min = 1, max = 255)
         String title,
 
         // memo/thumbnailUrl length limits can't be validated directly by Bean Validation

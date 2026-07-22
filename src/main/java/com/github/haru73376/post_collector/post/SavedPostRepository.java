@@ -1,5 +1,9 @@
 package com.github.haru73376.post_collector.post;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -21,4 +25,11 @@ public interface SavedPostRepository extends JpaRepository<SavedPost, UUID>,
     List<Object[]> countByCategoryIds(@Param("categoryIds") List<UUID> categoryIds);
 
     Optional<SavedPost> findByIdAndUserId(UUID id, UUID userId);
+
+    // Eagerly fetches category to avoid N+1 in getPosts; safe to combine with
+    // Specification since EntityGraph hints are applied independently of the WHERE clause
+    // (see SimpleJpaRepository#getQuery -> applyRepositoryMethodMetadata)
+    @EntityGraph(attributePaths = "category")
+    @Override
+    Page<SavedPost> findAll(Specification<SavedPost> spec, Pageable pageable);
 }

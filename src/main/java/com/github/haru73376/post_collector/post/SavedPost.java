@@ -57,5 +57,6 @@ public class SavedPost {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @Setter
     private LocalDateTime deletedAt;
 }
