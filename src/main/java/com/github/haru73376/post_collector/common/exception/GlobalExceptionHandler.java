@@ -10,6 +10,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.List;
 
@@ -77,6 +78,14 @@ public class GlobalExceptionHandler {
                 .toList();
         log.warn("Invalid request parameter: {}", details);
         return buildResponse(HttpStatus.BAD_REQUEST, INVALID_REQUEST_PARAMETER, details);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException e) {
+        String requiredType = e.getRequiredType() != null ? e.getRequiredType().getSimpleName() : "the expected type";
+        String detail = e.getName() + " must be a valid " + requiredType;
+        log.warn("Invalid request parameter: {}", detail);
+        return buildResponse(HttpStatus.BAD_REQUEST, INVALID_REQUEST_PARAMETER, List.of(detail));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
