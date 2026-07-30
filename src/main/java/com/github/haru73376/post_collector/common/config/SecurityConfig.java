@@ -2,6 +2,7 @@ package com.github.haru73376.post_collector.common.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.haru73376.post_collector.common.dto.ErrorResponse;
+import com.github.haru73376.post_collector.common.ratelimit.AuthRateLimitFilter;
 import com.github.haru73376.post_collector.common.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AuthRateLimitFilter authRateLimitFilter;
     private final ObjectMapper objectMapper;
 
     private static final String[] PUBLIC_PATHS = new String[]{
@@ -62,8 +64,8 @@ public class SecurityConfig {
                         })
                 )
 
-                .addFilterBefore(jwtAuthenticationFilter,
-                        UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(authRateLimitFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }
