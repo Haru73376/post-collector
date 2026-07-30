@@ -4,10 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.haru73376.post_collector.common.exception.ConflictException;
 import com.github.haru73376.post_collector.common.exception.InvalidCredentialsException;
 import com.github.haru73376.post_collector.common.exception.InvalidTokenException;
+import com.github.haru73376.post_collector.common.ratelimit.RateLimiterRegistry;
 import com.github.haru73376.post_collector.common.security.JwtTokenProvider;
+import com.github.haru73376.post_collector.common.security.SecurityContextUtils;
 import com.github.haru73376.post_collector.user.UserResponse;
 import jakarta.servlet.http.Cookie;
 import com.github.haru73376.post_collector.common.config.SecurityConfig;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -49,6 +52,21 @@ class AuthControllerTest {
     // JwtAuthenticationFilter depends on JwtTokenProvider, so it must be mocked
     @MockitoBean
     JwtTokenProvider jwtTokenProvider;
+
+    // AuthRateLimitFilter depends on RateLimiterRegistry; default-allow so rate limiting
+    // (login: 5/min, register: 3/min per IP) doesn't interfere with unrelated test scenarios
+    @MockitoBean
+    RateLimiterRegistry rateLimiterRegistry;
+
+    // AuthController itself doesn't need this, but UserRateLimitInterceptor (wired globally
+    // via WebMvcConfig) does, and @WebMvcTest picks up WebMvcConfigurer beans automatically
+    @MockitoBean
+    SecurityContextUtils securityContextUtils;
+
+    @BeforeEach
+    void allowAllRequestsByDefault() {
+        given(rateLimiterRegistry.tryConsume(any(), any())).willReturn(true);
+    }
 
     // -------------------------------------------------------------------------
     // register()

@@ -6,9 +6,11 @@ import com.github.haru73376.post_collector.common.config.SecurityConfig;
 import com.github.haru73376.post_collector.common.dto.PageResponse;
 import com.github.haru73376.post_collector.common.exception.BusinessRuleViolationException;
 import com.github.haru73376.post_collector.common.exception.ResourceNotFoundException;
+import com.github.haru73376.post_collector.common.ratelimit.RateLimiterRegistry;
 import com.github.haru73376.post_collector.common.security.JwtTokenProvider;
 import com.github.haru73376.post_collector.common.security.SecurityContextUtils;
 import com.github.haru73376.post_collector.tag.TagResponse;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -67,6 +69,16 @@ class PostControllerTest {
 
     @MockitoBean
     JwtTokenProvider jwtTokenProvider;
+
+    // UserRateLimitInterceptor depends on RateLimiterRegistry; default-allow so rate limiting
+    // (60/min per user) doesn't interfere with unrelated test scenarios
+    @MockitoBean
+    RateLimiterRegistry rateLimiterRegistry;
+
+    @BeforeEach
+    void allowAllRequestsByDefault() {
+        given(rateLimiterRegistry.tryConsume(any(), any())).willReturn(true);
+    }
 
     // -------------------------------------------------------------------------
     // getPosts()
