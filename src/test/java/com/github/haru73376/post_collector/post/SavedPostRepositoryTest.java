@@ -146,7 +146,7 @@ class SavedPostRepositoryTest {
         savePost(user, categoryA, Platform.OTHER, false, "active", null);
         SavedPost deleted = savePost(user, categoryA, Platform.OTHER, false, "deleted", null);
         deleted.setDeletedAt(LocalDateTime.now());
-        savedPostRepository.saveAndFlush(deleted);
+        savedPostRepository.flush();
 
         Map<UUID, Long> result = toCountMap(savedPostRepository.countByCategoryIds(List.of(categoryA.getId())));
 
@@ -205,7 +205,7 @@ class SavedPostRepositoryTest {
         User user = saveUser();
         SavedPost post = savePost(user);
         post.setDeletedAt(LocalDateTime.now());
-        savedPostRepository.saveAndFlush(post);
+        savedPostRepository.flush();
 
         assertThat(savedPostRepository.findByIdAndUserId(post.getId(), user.getId())).isEmpty();
     }
@@ -355,7 +355,7 @@ class SavedPostRepositoryTest {
         User user = saveUser();
         SavedPost post = savePost(user);
         post.setDeletedAt(LocalDateTime.now());
-        savedPostRepository.saveAndFlush(post);
+        savedPostRepository.flush();
 
         Page<SavedPost> result = savedPostRepository.findAll(
                 SavedPostSpecification.withCriteria(user.getId(), NO_CRITERIA), PageRequest.of(0, 20));
@@ -390,9 +390,9 @@ class SavedPostRepositoryTest {
         // so the two writes must be more than 1 second apart for this comparison to be reliable.
         Thread.sleep(1100);
         post.setTitle("changed-title");
-        SavedPost updated = savedPostRepository.saveAndFlush(post);
+        savedPostRepository.flush();
 
-        assertThat(updated.getCreatedAt()).isEqualTo(initialCreatedAt);
-        assertThat(updated.getUpdatedAt()).isAfter(initialUpdatedAt);
+        assertThat(post.getCreatedAt()).isEqualTo(initialCreatedAt);
+        assertThat(post.getUpdatedAt()).isAfter(initialUpdatedAt);
     }
 }

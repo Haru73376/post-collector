@@ -141,9 +141,9 @@ class UserRepositoryTest {
         // so the two writes must be more than 1 second apart for this comparison to be reliable.
         Thread.sleep(1100);
         user.setUsername("changed-name");
-        User updated = userRepository.saveAndFlush(user);
+        userRepository.flush();
 
-        assertThat(updated.getCreatedAt()).isEqualTo(initialCreatedAt);
-        assertThat(updated.getUpdatedAt()).isAfter(initialUpdatedAt);
+        assertThat(user.getCreatedAt()).isEqualTo(initialCreatedAt);
+        assertThat(user.getUpdatedAt()).isAfter(initialUpdatedAt);
     }
 }
