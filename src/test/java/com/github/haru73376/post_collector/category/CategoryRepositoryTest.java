@@ -255,9 +255,9 @@ class CategoryRepositoryTest {
         // so the two writes must be more than 1 second apart for this comparison to be reliable.
         Thread.sleep(1100);
         category.setName("changed-name");
-        Category updated = categoryRepository.saveAndFlush(category);
+        categoryRepository.flush();
 
-        assertThat(updated.getCreatedAt()).isEqualTo(initialCreatedAt);
-        assertThat(updated.getUpdatedAt()).isAfter(initialUpdatedAt);
+        assertThat(category.getCreatedAt()).isEqualTo(initialCreatedAt);
+        assertThat(category.getUpdatedAt()).isAfter(initialUpdatedAt);
     }
 }
