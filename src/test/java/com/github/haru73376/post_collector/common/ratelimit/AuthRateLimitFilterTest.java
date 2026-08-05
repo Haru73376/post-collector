@@ -137,4 +137,17 @@ class AuthRateLimitFilterTest {
 
         verify(rateLimiterRegistry).tryConsume("/api/v1/auth/login:198.51.100.9", RateLimitRules.LOGIN);
     }
+
+    @Test
+    void fallsBackToRemoteAddr_whenForwardedForHeaderIsBlank() throws Exception {
+        given(request.getMethod()).willReturn("POST");
+        given(request.getRequestURI()).willReturn("/api/v1/auth/login");
+        given(request.getHeader("X-Forwarded-For")).willReturn("   ");
+        given(request.getRemoteAddr()).willReturn("198.51.100.9");
+        given(rateLimiterRegistry.tryConsume(any(), any())).willReturn(true);
+
+        authRateLimitFilter.doFilterInternal(request, response, filterChain);
+
+        verify(rateLimiterRegistry).tryConsume("/api/v1/auth/login:198.51.100.9", RateLimitRules.LOGIN);
+    }
 }

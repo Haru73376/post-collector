@@ -423,6 +423,30 @@ class CategoryServiceTest {
                 .hasMessageContaining("Category with the same name already exists under this parent");
     }
 
+    @Test
+    void updateCategory_scopesDuplicateCheckToCurrentParent_whenRenamingNonRootCategoryWithoutParentId() {
+        UUID userId = UUID.randomUUID();
+        UUID categoryId = UUID.randomUUID();
+        UpdateCategoryRequest request = new UpdateCategoryRequest("newCategoryName", null, null);
+
+        Category parent = new Category();
+        UUID parentId = UUID.randomUUID();
+        ReflectionTestUtils.setField(parent, "id", parentId);
+
+        Category category = new Category();
+        ReflectionTestUtils.setField(category, "id", categoryId);
+        category.setParent(parent);
+
+        given(categoryRepository.findByIdAndUserId(categoryId, userId)).willReturn(Optional.of(category));
+        given(categoryRepository.existsByUserIdAndParentIdAndName(userId, parentId, "newCategoryName"))
+                .willReturn(false);
+
+        CategoryResponse result = categoryService.updateCategory(userId, categoryId, request);
+
+        assertThat(result.name()).isEqualTo("newCategoryName");
+        verify(categoryRepository).existsByUserIdAndParentIdAndName(userId, parentId, "newCategoryName");
+    }
+
     // -------------------------------------------------------------------------
     // updateCategory()
     // -------------------------------------------------------------------------

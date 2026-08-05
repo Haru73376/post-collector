@@ -337,6 +337,18 @@ class SavedPostRepositoryTest {
     }
 
     @Test
+    void withCriteria_doesNotFilterByKeyword_whenKeywordIsBlank() {
+        User user = saveUser();
+        SavedPost post = savePost(user, null, Platform.OTHER, false, "any-title", null);
+
+        PostSearchCriteria criteria = new PostSearchCriteria(null, null, null, null, "   ");
+        Page<SavedPost> result = savedPostRepository.findAll(
+                SavedPostSpecification.withCriteria(user.getId(), criteria), PageRequest.of(0, 20));
+
+        assertThat(result.getContent()).extracting(SavedPost::getId).containsExactly(post.getId());
+    }
+
+    @Test
     void withCriteria_combinesMultipleCriteriaWithAnd() {
         User user = saveUser();
         Category category = saveCategory(user, "category");
