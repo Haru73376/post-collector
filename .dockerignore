@@ -1,0 +1,24 @@
+# Build output (rebuilt inside the image)
+target/
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Secrets — never bake these into the image
+.env
+.env.example
+
+# Project docs (not needed at runtime, docs/ is also gitignored)
+docs/
+README.md
+HELP.md
+
+# Local-only assets
+assets/
