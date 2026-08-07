@@ -11,6 +11,27 @@ services:
       - "3306:3306" # 3306 in local → 3306 in container
     volumes:
       - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: post-collector-app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8080:8080" # 8080 in local → 8080 in container
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # app reaches MySQL by service name ("mysql"), not localhost
+      DB_URL: jdbc:mysql://mysql:3306/post_collector?serverTimezone=UTC&characterEncoding=UTF-8
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
 
 volumes:
   mysql-data:

@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    show-sql: false
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      access-token-expiration: 900000      # 15 minutes
+      refresh-token-expiration: 604800000  # 7 days
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
