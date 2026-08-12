@@ -1,3 +1,10 @@
+server:
+  # Railway terminates TLS at its edge proxy and forwards plain HTTP to the
+  # container; without this, Spring doesn't know the original request was
+  # HTTPS and generates http:// URLs (e.g. in the OpenAPI spec's server
+  # entry), which browsers then refuse to call from an https:// page.
+  forward-headers-strategy: framework
+
 spring:
   datasource:
     url: ${DB_URL}
