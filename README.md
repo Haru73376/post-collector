@@ -11,8 +11,8 @@ A Spring Boot REST API to collect and organize social media posts by category an
 ![Tests](https://img.shields.io/badge/Tests-335%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/Coverage-97%25%20line%20%2F%2097%25%20branch-brightgreen)
 
-**Live Demo**: _(coming soon)_
-**API Docs (Swagger UI)**: _(available after deployment)_
+**Live Demo**: https://post-collector-production.up.railway.app
+**API Docs (Swagger UI)**: https://post-collector-production.up.railway.app/swagger-ui.html
 
 ---
 
@@ -156,7 +156,7 @@ docker compose up -d
 
 ## Roadmap
 
-- [ ] Deploy to Railway and link the live demo above
+- [x] Deploy to Railway and link the live demo above
 - [ ] CI pipeline (GitHub Actions) running `./mvnw test` on every PR, with a dynamic coverage badge
 - [ ] Bulk tag/category operations
 - [ ] Browser extension or share-sheet integration for one-tap saving from each platform's app
