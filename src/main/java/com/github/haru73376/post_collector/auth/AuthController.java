@@ -5,6 +5,7 @@ import com.github.haru73376.post_collector.common.exception.InvalidTokenExceptio
 import com.github.haru73376.post_collector.user.UserResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,7 +28,8 @@ public class AuthController {
     @Operation(summary = "Register a new user",
             description = "Creates a user account with a BCrypt-hashed password. Returns 409 if the email or username is already taken.")
     @ApiResponse(responseCode = "409", description = "Email or username is already taken",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(value = "{\"status\":409,\"error\":\"Conflict\",\"message\":\"Email already exists\"}")))
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
     }
@@ -37,7 +39,8 @@ public class AuthController {
             description = "Returns a short-lived access token in the response body and sets a long-lived, HttpOnly "
                     + "refresh token cookie.")
     @ApiResponse(responseCode = "401", description = "Email or password is incorrect",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(value = "{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"Invalid email or password\"}")))
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
         return buildTokenResponse(authService.login(request));
     }
@@ -47,7 +50,8 @@ public class AuthController {
             description = "Reads the refresh token cookie, rotates it (the presented token is invalidated even if "
                     + "reused afterward), and issues a new access token plus a new refresh token cookie.")
     @ApiResponse(responseCode = "401", description = "Refresh token cookie is missing, invalid, or expired",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(value = "{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"Refresh token is invalid or expired\"}")))
     public ResponseEntity<TokenResponse> refresh(
             // required=false to return 401 (not 400) when cookie is missing
             @CookieValue(name = "refreshToken", required = false) String rawRefreshToken

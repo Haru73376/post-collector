@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.models.examples.Example;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
@@ -68,7 +69,10 @@ public class OpenApiConfig {
         ApiResponse unauthorized = new ApiResponse()
                 .description("Missing, invalid, or expired access token")
                 .content(new Content().addMediaType("application/json",
-                        new MediaType().schema(new Schema<>().$ref("#/components/schemas/ErrorResponse"))));
+                        new MediaType()
+                                .schema(new Schema<>().$ref("#/components/schemas/ErrorResponse"))
+                                .addExamples("default", new Example().value(
+                                        "{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"Authentication required\"}"))));
 
         return openApi -> openApi.getPaths().forEach((path, pathItem) -> {
             if (!path.startsWith(AUTH_PATH_PREFIX)) {

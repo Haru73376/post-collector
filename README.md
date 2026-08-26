@@ -46,22 +46,23 @@ Beyond CRUD, a few design decisions this project specifically works through:
 - **Rate limiting split across two mechanisms on purpose**: a `Filter` (`AuthRateLimitFilter`, IP-based) protects `/auth/login` and `/auth/register` *before* authentication exists, while a `HandlerInterceptor` (`UserRateLimitInterceptor`, per-user) protects authenticated endpoints *after* the security chain resolves an identity — chosen because a Filter runs outside `DispatcherServlet` (so it can't use `@RestControllerAdvice` for its error response) while an Interceptor runs inside it (so it can).
 - **Soft delete via `@SQLRestriction`**: deleted posts are excluded from every query path automatically at the Hibernate level, rather than every custom query needing its own `deleted_at IS NULL` clause.
 - **Refresh token rotation**: each `/auth/refresh` call deletes the presented token and issues a new one, so a stolen-but-unused refresh token becomes unusable the moment the legitimate owner refreshes.
+- **Package-by-feature, not package-by-layer**: code is organized as `auth/`, `category/`, `tag/`, `post/`, `user/` (each containing its own Controller/Service/Repository/DTOs), rather than top-level `controller/`/`service/`/`repository/` packages — so changes to one feature stay contained to one package.
 
 ## Tech Stack
 
 | Category | Choice | Why |
 |---|---|---|
-| Language | Java 21 | LTS; records for DTOs, pattern-matching `instanceof` for cleaner null/type checks |
-| Framework | Spring Boot 3.5 | Mature ecosystem, first-class testing support |
+| Language | Java 21 | Records for DTOs, pattern-matching `instanceof` for cleaner null/type checks |
+| Framework | Spring Boot 3.5 | |
 | Security | Spring Security + JWT | Stateless auth fits a REST API; access token in the response body + refresh token in an HttpOnly cookie balances usability against XSS exposure |
 | Database | MySQL 8 | Relational fit for hierarchical categories and many-to-many tag associations |
 | ORM | Spring Data JPA / Hibernate | Productivity, paired with explicit attention to its sharp edges (dirty-checking/flush timing, N+1 avoidance via `@EntityGraph`, soft-delete via `@SQLRestriction`) |
 | Rate limiting | Bucket4j | Lightweight token-bucket implementation; no external dependency (Redis, etc.) needed for a single-instance deployment |
 | Testing | JUnit 5, Mockito, Testcontainers | Testcontainers runs tests against a real MySQL instance rather than H2, so tests exercise the actual SQL/constraints that will run in production |
-| Coverage | JaCoCo | Enforces a minimum coverage threshold as part of `mvn test` |
-| API Docs | SpringDoc OpenAPI (Swagger UI) | Interactive, always in sync with the code |
+| Coverage | JaCoCo | |
+| API Docs | SpringDoc OpenAPI (Swagger UI) | |
 | Infrastructure | Docker Compose | Reproducible local MySQL instance |
-| Deployment | Railway | _(planned)_ |
+| Deployment | Railway | Dockerfile-based deploy; MySQL as a managed plugin service |
 
 ## Architecture
 
@@ -89,7 +90,71 @@ flowchart TB
 
 ### ER Diagram
 
-See [`assets/README/ER.pdf`](assets/README/ER.pdf) for the full entity-relationship diagram (users, categories, saved posts, tags, refresh tokens).
+```mermaid
+erDiagram
+    USERS ||--o{ REFRESH_TOKENS : issues
+    USERS ||--o{ CATEGORIES : owns
+    USERS ||--o{ SAVED_POSTS : owns
+    USERS ||--o{ TAGS : owns
+    CATEGORIES o|--o{ CATEGORIES : "parent of"
+    CATEGORIES o|--o{ SAVED_POSTS : contains
+    SAVED_POSTS ||--o{ POST_TAGS : has
+    TAGS ||--o{ POST_TAGS : "applied via"
+
+    USERS {
+        uuid id PK
+        string username UK
+        string email UK
+        string password_hash
+        datetime created_at
+        datetime updated_at
+    }
+
+    REFRESH_TOKENS {
+        bigint id PK
+        uuid user_id FK
+        string token_hash UK "SHA-256 hash"
+        datetime expires_at
+        datetime created_at
+    }
+
+    CATEGORIES {
+        uuid id PK
+        uuid user_id FK
+        uuid parent_id FK "nullable, NULL = root"
+        string name
+        int sort_order
+        datetime created_at
+        datetime updated_at
+    }
+
+    SAVED_POSTS {
+        uuid id PK
+        uuid user_id FK
+        uuid category_id FK "nullable, NULL = uncategorized"
+        string url "HTTPS required"
+        string title
+        text memo "nullable"
+        string thumbnail_url "nullable, HTTPS required"
+        string platform "INSTAGRAM/YOUTUBE/PINTEREST/TIKTOK/X/OTHER"
+        boolean is_favorite
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at "nullable, soft delete"
+    }
+
+    TAGS {
+        bigint id PK
+        uuid user_id FK
+        string name "unique per user"
+        datetime created_at
+    }
+
+    POST_TAGS {
+        uuid post_id PK,FK
+        bigint tag_id PK,FK
+    }
+```
 
 ## Testing & Quality
 
@@ -153,10 +218,3 @@ docker compose up -d
 ```bash
 ./mvnw test
 ```
-
-## Roadmap
-
-- [x] Deploy to Railway and link the live demo above
-- [ ] CI pipeline (GitHub Actions) running `./mvnw test` on every PR, with a dynamic coverage badge
-- [ ] Bulk tag/category operations
-- [ ] Browser extension or share-sheet integration for one-tap saving from each platform's app

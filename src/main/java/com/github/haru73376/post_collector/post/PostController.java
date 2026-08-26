@@ -5,6 +5,7 @@ import com.github.haru73376.post_collector.common.dto.PageResponse;
 import com.github.haru73376.post_collector.common.security.SecurityContextUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -44,9 +45,11 @@ public class PostController {
     @Operation(summary = "Save a new post",
             description = "categoryId and tagIds are optional (a post can be uncategorized/untagged). thumbnailUrl, if provided, must be an HTTPS URL.")
     @ApiResponse(responseCode = "404", description = "categoryId, or one of the tagIds, doesn't exist or isn't owned by the current user",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(value = "{\"status\":404,\"error\":\"Not Found\",\"message\":\"Category not found\"}")))
     @ApiResponse(responseCode = "400", description = "thumbnailUrl was provided but isn't a valid HTTPS URL",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(value = "{\"status\":400,\"error\":\"Bad Request\",\"message\":\"thumbnailUrl must be a valid HTTPS URL\"}")))
     public ResponseEntity<PostDetailResponse> createPost(@Valid @RequestBody CreatePostRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                              .body(postService.createPost(securityContextUtils.getCurrentUserId(), request));
@@ -57,9 +60,11 @@ public class PostController {
             description = "Only the fields provided are changed. memo/thumbnailUrl/categoryId can each be explicitly cleared by sending "
                     + "null; omitting them leaves the current value untouched. tagIds, if provided, fully replaces the post's tags.")
     @ApiResponse(responseCode = "404", description = "Post not found/not owned, or categoryId/one of the tagIds doesn't exist or isn't owned by the current user",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(value = "{\"status\":404,\"error\":\"Not Found\",\"message\":\"Saved post not found\"}")))
     @ApiResponse(responseCode = "400", description = "memo/thumbnailUrl exceeds the length limit, or thumbnailUrl isn't a valid HTTPS URL",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(value = "{\"status\":400,\"error\":\"Bad Request\",\"message\":\"thumbnailUrl must be a valid HTTPS URL\"}")))
     public ResponseEntity<PostDetailResponse> updatePost(
             @PathVariable UUID id, @Valid @RequestBody UpdatePostRequest request
     ) {
@@ -70,7 +75,8 @@ public class PostController {
     @Operation(summary = "Delete a saved post",
             description = "Soft delete — the post is excluded from all queries but not physically removed from the database.")
     @ApiResponse(responseCode = "404", description = "Post not found or not owned by the current user",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(value = "{\"status\":404,\"error\":\"Not Found\",\"message\":\"Saved post not found\"}")))
     public ResponseEntity<Void> deletePost(@PathVariable UUID id) {
         postService.deletePost(securityContextUtils.getCurrentUserId(), id);
         return ResponseEntity.noContent().build();

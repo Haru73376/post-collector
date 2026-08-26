@@ -4,6 +4,7 @@ import com.github.haru73376.post_collector.common.dto.ErrorResponse;
 import com.github.haru73376.post_collector.common.security.SecurityContextUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,7 +34,8 @@ public class TagController {
     @PostMapping
     @Operation(summary = "Create a tag", description = "Rejects duplicate tag names for the same user.")
     @ApiResponse(responseCode = "409", description = "A tag with this name already exists",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(value = "{\"status\":409,\"error\":\"Conflict\",\"message\":\"Tag with the same name already exists\"}")))
     public ResponseEntity<TagDetailResponse> createTag(@Valid @RequestBody CreateTagRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                              .body(tagService.createTag(securityContextUtils.getCurrentUserId(), request));
@@ -43,9 +45,11 @@ public class TagController {
     @Operation(summary = "Rename a tag",
             description = "Returns 404 if the tag doesn't exist or belongs to another user (the two cases are indistinguishable by design).")
     @ApiResponse(responseCode = "404", description = "Tag not found or not owned by the current user",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(value = "{\"status\":404,\"error\":\"Not Found\",\"message\":\"Tag not found\"}")))
     @ApiResponse(responseCode = "409", description = "A tag with this name already exists",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(value = "{\"status\":409,\"error\":\"Conflict\",\"message\":\"Tag with the same name already exists\"}")))
     public ResponseEntity<TagResponse> updateTag(
             @PathVariable Long id, @Valid @RequestBody UpdateTagRequest request
     ) {
@@ -55,7 +59,8 @@ public class TagController {
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a tag", description = "Also removes this tag from any posts it was attached to.")
     @ApiResponse(responseCode = "404", description = "Tag not found or not owned by the current user",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(value = "{\"status\":404,\"error\":\"Not Found\",\"message\":\"Tag not found\"}")))
     public ResponseEntity<Void> deleteTag(@PathVariable Long id) {
         tagService.deleteTag(securityContextUtils.getCurrentUserId(), id);
         return ResponseEntity.noContent().build();
