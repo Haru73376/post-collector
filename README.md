@@ -30,23 +30,32 @@ I frequently save posts and videos across several different SNS apps, and each a
 
 ## Features
 
-- User registration and login (JWT access token + HttpOnly refresh token cookie)
-- Hierarchical category management (up to 3 levels deep, with cycle/depth validation)
-- Save posts with URL, title, memo, and thumbnail, tied to any supported platform
-- Tag-based, cross-category filtering (a tag applies across categories, not within one)
-- Pagination, multi-criteria filtering (category / platform / tag / favorite / keyword), and keyword search across title & memo
-- Soft delete for saved posts (nothing is physically removed on delete)
-- Rate limiting on authentication endpoints (IP-based) and authenticated APIs (per-user)
+* **Centralized multi-platform post collection**: save posts from Instagram, YouTube, Pinterest, TikTok, X, and other platforms with a URL, title, memo, thumbnail, platform, and favorite status.
+* **Hierarchical category organization**: organize saved posts into categories up to 3 levels deep, with validation that prevents invalid depth and cyclic relationships.
+* **Cross-cutting tags**: apply reusable tags across categories so posts can be grouped by topic independently of their category structure.
+* **Flexible search and filtering**: filter posts by category, platform, tag, favorite status, or keyword, with pagination, sorting, and keyword search across titles and memos.
+* **Secure account and session management**: user registration, login, logout, JWT access-token authentication, and refresh-token based session renewal.
 
 ## Technical Highlights
 
-Beyond CRUD, a few design decisions this project specifically works through:
+Beyond CRUD, this project focuses on several backend design and reliability concerns:
 
-- **IDOR-safe by construction**: every resource lookup is scoped by `(id, userId)` at the query level, not filtered after the fact — "not found" and "not yours" always return the same 404, so resource existence can't be probed by ID.
-- **Rate limiting split across two mechanisms on purpose**: a `Filter` (`AuthRateLimitFilter`, IP-based) protects `/auth/login` and `/auth/register` *before* authentication exists, while a `HandlerInterceptor` (`UserRateLimitInterceptor`, per-user) protects authenticated endpoints *after* the security chain resolves an identity — chosen because a Filter runs outside `DispatcherServlet` (so it can't use `@RestControllerAdvice` for its error response) while an Interceptor runs inside it (so it can).
-- **Soft delete via `@SQLRestriction`**: deleted posts are excluded from every query path automatically at the Hibernate level, rather than every custom query needing its own `deleted_at IS NULL` clause.
-- **Refresh token rotation**: each `/auth/refresh` call deletes the presented token and issues a new one, so a stolen-but-unused refresh token becomes unusable the moment the legitimate owner refreshes.
-- **Package-by-feature, not package-by-layer**: code is organized as `auth/`, `category/`, `tag/`, `post/`, `user/` (each containing its own Controller/Service/Repository/DTOs), rather than top-level `controller/`/`service/`/`repository/` packages — so changes to one feature stay contained to one package.
+* **Secure token lifecycle, not just JWT authentication**: authentication is stateless with Spring Security and short-lived JWT access tokens, while refresh tokens are generated with `SecureRandom`, stored only as SHA-256 hashes, delivered through an HttpOnly cookie, and rotated on every refresh so a previously issued token cannot be reused after rotation.
+
+* **Query design that explicitly addresses N+1 problems**: post search is built with composable Spring Data JPA `Specification`s, categories are fetched with `@EntityGraph`, and tags are batch-loaded for the current page instead of queried once per post. Category post counts are also aggregated in a single query before the category tree is assembled in memory.
+
+* **Layered automated testing against a real database**: 335 tests cover service, repository, controller, and full integration layers using JUnit 5, Mockito, MockMvc, and Testcontainers. Repository and integration tests run against MySQL rather than an in-memory substitute, with approximately 97% line and branch coverage and an 80% JaCoCo coverage gate enforced during the build.
+
+* **Hierarchical data integrity beyond basic CRUD**: category moves validate both cycles and the resulting subtree depth, preventing a category from becoming its own ancestor or causing the hierarchy to exceed the 3-level limit. Category trees are then constructed from pre-grouped data without issuing a query for every node.
+
+* **User ownership enforced at the data-access boundary**: user-owned resources are queried with both the resource ID and authenticated user ID, so unauthorized resources are never retrieved and filtered afterward. Missing and non-owned resources therefore follow the same not-found path rather than exposing whether another user's resource exists.
+
+* **Context-aware rate limiting**: unauthenticated login and registration requests are rate-limited by client IP in a security `Filter`, while authenticated API requests are limited per user in a `HandlerInterceptor` after Spring Security has resolved the user identity.
+
+* **True partial-update semantics**: PATCH-style post updates distinguish between an omitted field and a field explicitly set to `null`, allowing optional values such as memo, thumbnail, and category to be intentionally cleared without treating omission as deletion.
+
+* **Centralized soft-delete behavior**: saved posts use Hibernate `@SQLRestriction` so records marked with `deleted_at` are automatically excluded from normal entity queries instead of requiring every repository query to repeat the same condition.
+
 
 ## Tech Stack
 
